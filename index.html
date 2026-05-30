@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Diego's Scholarship Dashboard · Howard University</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          howard: {
+            blue: '#003a63',
+            navy: '#012a47',
+            red: '#e51937',
+            gold: '#c8a45c',
+            cream: '#f7f4ee',
+          },
+        },
+        fontFamily: {
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+        },
+      },
+    },
+  };
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --howard-blue: #003a63;
+    --howard-red: #e51937;
+  }
+  body { background: #f7f4ee; font-family: 'Inter', system-ui, sans-serif; }
+  /* Howard-themed fallback styles in case the Tailwind CDN is blocked on first load */
+  .hw-banner { background: linear-gradient(135deg, #012a47 0%, #003a63 55%, #014a7d 100%); color: #fff; }
+  .hw-card { background: #fff; border: 1px solid #e8e2d6; border-radius: 16px; }
+  .hw-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
+  .hw-scrollbar::-webkit-scrollbar-thumb { background: #cdd6df; border-radius: 8px; }
+  textarea { font-family: inherit; }
+  details > summary { list-style: none; cursor: pointer; }
+  details > summary::-webkit-details-marker { display: none; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useMemo, useEffect } = React;
+
+/* ------------------------------------------------------------------ *
+ *  DATA: real, researched scholarships matched to Diego's profile.
+ *  Profile: Howard U · sophomore · Computer Engineering · Black +
+ *  Hispanic/Latino · NSBE VP · IEEE mentor · financial need · founder
+ *  (CollegeSwipe) · AI/ML + cybersecurity · future PhD.
+ *
+ *  NOTE: amounts & deadlines change every cycle — always confirm on the
+ *  official page. `deadline` holds the next realistic occurrence; many
+ *  awards recur annually (recurring: true).
+ * ------------------------------------------------------------------ */
+const CATEGORIES = {
+  "Black/HBCU": { label: "Black / HBCU", color: "#003a63" },
+  "Hispanic/Latino": { label: "Hispanic / Latino", color: "#c2410c" },
+  "Tech/Merit": { label: "Tech / Merit", color: "#1d4ed8" },
+  "Cybersecurity": { label: "Cybersecurity", color: "#047857" },
+  "Entrepreneurship": { label: "Entrepreneurship", color: "#7c3aed" },
+};
+
+const SCHOLARSHIPS = [
+  // ---------------- BLACK / HBCU ----------------
+  {
+    id: "nsbe-analog",
+    name: "NSBE / Analog Devices Scholarship",
+    sponsor: "National Society of Black Engineers + Analog Devices",
+    amount: "$5,000", amountValue: 5000,
+    deadline: "2027-02-15", deadlineNote: "Annual — opens early spring; check NSBE portal",
+    url: "https://nsbe.org/scholarships/",
+    category: "Black/HBCU", eligibleNow: true, yearNote: "Freshman–Junior",
+    gpa: "3.0+", citizenshipNote: "U.S. citizen",
+    fitReasons: ["He's NSBE Vice President — strongest possible NSBE candidate", "Computer / Electrical Engineering major", "Black engineer focus"],
+    cautions: ["Must be an active NSBE member", "Requires U.S. citizenship"],
+    recurring: true,
+    description: "Corporate-sponsored NSBE award for computer/electrical engineering students; leverage his leadership résumé.",
+  },
+  {
+    id: "nsbe-hatch",
+    name: "NSBE / Hatch Scholarship",
+    sponsor: "National Society of Black Engineers + Hatch",
+    amount: "$5,000", amountValue: 5000,
+    deadline: "2027-02-15", deadlineNote: "Annual — spring cycle, all NSBE regions",
+    url: "https://nsbe.org/scholarships/",
+    category: "Black/HBCU", eligibleNow: true, yearNote: "Sophomore–Junior",
+    gpa: "2.75+", citizenshipNote: "U.S. citizen",
+    fitReasons: ["Sophomore-eligible", "Lower 2.75 GPA threshold = safer bet", "NSBE leadership stands out"],
+    cautions: ["NSBE membership required", "U.S. citizens only"],
+    recurring: true,
+    description: "NSBE award for sophomores/juniors in core engineering disciplines with a more accessible GPA bar.",
+  },
+  {
+    id: "nsbe-tighe",
+    name: "NSBE / Tighe & Bond Scholarship",
+    sponsor: "National Society of Black Engineers + Tighe & Bond",
+    amount: "$5,000", amountValue: 5000,
+    deadline: "2027-02-15", deadlineNote: "Annual — spring; NSBE Regions 1, 2, 5",
+    url: "https://nsbe.org/scholarships/",
+    category: "Black/HBCU", eligibleNow: true, yearNote: "Sophomore–Senior",
+    gpa: "3.0+", citizenshipNote: "U.S. citizen or permanent resident",
+    fitReasons: ["Sophomore-eligible", "Howard sits in NSBE Region 2", "NSBE VP leadership"],
+    cautions: ["NSBE membership required", "Region-restricted"],
+    recurring: true,
+    description: "Regional NSBE engineering scholarship; Howard falls in an eligible region.",
+  },
+  {
+    id: "uncf-stem",
+    name: "UNCF STEM Scholars Program",
+    sponsor: "United Negro College Fund",
+    amount: "$2,500–$5,000 (renewable)", amountValue: 5000,
+    deadline: "2027-02-15", deadlineNote: "Annual — typically February",
+    url: "https://scholarships.uncf.org/",
+    category: "Black/HBCU", eligibleNow: true, yearNote: "Freshman–Senior (renewable)",
+    gpa: "3.0+", citizenshipNote: "U.S. citizen, permanent resident, or national",
+    fitReasons: ["Already in UNCF's Early Talent program — known to UNCF", "Renewable through graduation", "Demonstrated financial need is central"],
+    cautions: ["Requires FAFSA / documented unmet need", "Essays + 1-min video"],
+    recurring: true,
+    description: "Major renewable STEM award based on financial need; he already has a UNCF relationship to build on.",
+  },
+  {
+    id: "dfbsst",
+    name: "Development Fund for Black Students in Science & Technology",
+    sponsor: "DFBSST",
+    amount: "Up to $3,000/yr (renewable)", amountValue: 3000,
+    deadline: "2026-06-15", deadlineNote: "Nomination window typically Apr–Jun",
+    url: "https://www.dfbsstscholarship.org/",
+    category: "Black/HBCU", eligibleNow: true, yearNote: "Nomination-based (HBCU only)",
+    gpa: "Strong academics", citizenshipNote: "U.S. citizen or permanent resident",
+    fitReasons: ["HBCU-exclusive — Howard qualifies", "High GPA + engineering = ideal nominee", "Renewable up to 4 years"],
+    cautions: ["Requires a dean/faculty nomination — ask his department NOW", "Not a direct self-apply"],
+    recurring: true,
+    description: "HBCU-only fund for Black STEM students; he should ask a Howard CEA professor or dean to nominate him.",
+  },
+  {
+    id: "howard-cea",
+    name: "Howard CEA General Scholarship Application",
+    sponsor: "Howard University College of Engineering & Architecture",
+    amount: "$500–$5,000", amountValue: 5000,
+    deadline: "Rolling", deadlineNote: "Year-round; awards distributed Jul–Sep",
+    url: "https://cea.howard.edu/resources/cea-scholarships",
+    category: "Black/HBCU", eligibleNow: true, yearNote: "All years",
+    gpa: "Varies by award", citizenshipNote: "Howard student in good standing",
+    fitReasons: ["He already wrote a CEA scholarship essay — reuse it", "One application feeds many corporate-partner awards", "Most accessible award on this list"],
+    cautions: ["Re-apply each year"],
+    recurring: true,
+    description: "Single Howard application that routes to many corporate-partner engineering scholarships (Chevron, NBCUniversal, Jacobs).",
+  },
+  {
+    id: "nacme",
+    name: "NACME Scholarship (Block Grant via Howard)",
+    sponsor: "National Action Council for Minorities in Engineering",
+    amount: "$1,500–$4,000/yr", amountValue: 4000,
+    deadline: "Varies", deadlineNote: "Distributed through Howard's engineering office",
+    url: "https://www.nacme.org/nacme-scholarships",
+    category: "Black/HBCU", eligibleNow: true, yearNote: "Enrolled engineering/CS students",
+    gpa: "Varies", citizenshipNote: "U.S. citizen or permanent resident",
+    fitReasons: ["Open to Black AND Hispanic engineers — he's both", "Awarded through the school he already attends"],
+    cautions: ["Must ask Howard's CEA office whether they hold a NACME partnership/block grant"],
+    recurring: true,
+    description: "NACME funnels block-grant money through partner engineering schools — ask Howard CEA if he can be nominated.",
+  },
+  // ---------------- HISPANIC / LATINO ----------------
+  {
+    id: "scholarshpe",
+    name: "ScholarSHPE Scholarships",
+    sponsor: "Society of Hispanic Professional Engineers",
+    amount: "$2,000–$10,000", amountValue: 10000,
+    deadline: "2027-02-16", deadlineNote: "Annual — typically opens early February",
+    url: "https://www.shpe.org/students/scholarships",
+    category: "Hispanic/Latino", eligibleNow: true, yearNote: "All undergrad levels",
+    gpa: "2.5+", citizenshipNote: "No U.S. citizenship requirement",
+    fitReasons: ["Hispanic/Latino engineering focus — perfect fit", "No citizenship requirement (good given family)", "Open to all undergrad years"],
+    cautions: ["Requires active SHPE membership — have him join a Howard/area chapter"],
+    recurring: true,
+    description: "Flagship Hispanic engineering scholarship; no citizenship requirement makes it one of his safest Latino-track options.",
+  },
+  {
+    id: "gmis",
+    name: "Great Minds in STEM (HENAAC) Scholarship",
+    sponsor: "Great Minds in STEM",
+    amount: "$500–$10,000", amountValue: 10000,
+    deadline: "2027-03-09", deadlineNote: "Annual — typically opens March",
+    url: "https://greatmindsinstem.org/gmis-scholarship-application/gmis-scholarships/",
+    category: "Hispanic/Latino", eligibleNow: true, yearNote: "Undergrad & grad",
+    gpa: "3.0+", citizenshipNote: "Not citizenship-restricted",
+    fitReasons: ["Hispanic STEM, 3.0+ — he qualifies", "Rewards leadership + community involvement (NSBE VP, mentoring)"],
+    cautions: [],
+    recurring: true,
+    description: "Merit-based Hispanic STEM award that weighs leadership and community service heavily — his strong suit.",
+  },
+  {
+    id: "hacu-deloitte",
+    name: "HACU / Deloitte Foundation Scholars",
+    sponsor: "Hispanic Association of Colleges & Universities + Deloitte",
+    amount: "$10,000 (renewable)", amountValue: 10000,
+    deadline: "Varies", deadlineNote: "Annual — typically deadline ~May",
+    url: "https://www.hacu.net/hacu/Scholarships.asp",
+    category: "Hispanic/Latino", eligibleNow: true, yearNote: "Undergrad & grad",
+    gpa: "3.0+", citizenshipNote: "Not explicitly citizenship-restricted",
+    fitReasons: ["Howard is a HACU member institution", "Computer Science/Engineering eligible", "$10k renewable"],
+    cautions: ["Confirm Howard's current HACU member status when applying"],
+    recurring: true,
+    description: "HACU scholarship open to students at member institutions (Howard included) in computing/engineering.",
+  },
+  {
+    id: "hacu-ford",
+    name: "HACU / Ford Philanthropy Scholarship",
+    sponsor: "HACU + Ford Philanthropy",
+    amount: "$10,000", amountValue: 10000,
+    deadline: "2026-06-30", deadlineNote: "Annual — typically late spring/June",
+    url: "https://www.hacu.net/hacu/Scholarships.asp",
+    category: "Hispanic/Latino", eligibleNow: true, yearNote: "Undergrad & grad",
+    gpa: "Strong academics", citizenshipNote: "Not explicitly citizenship-restricted",
+    fitReasons: ["Targets CS / software / electrical engineering + data science", "Howard is a HACU member", "AI/ML interest fits"],
+    cautions: ["Verify Howard's HACU membership and current cycle dates"],
+    recurring: true,
+    description: "HACU engineering/data-science award funded by Ford; a near-term deadline worth chasing.",
+  },
+  {
+    id: "hacu-kia",
+    name: "HACU / Kia America 'Accelerate the Good' Scholarship",
+    sponsor: "HACU + Kia America",
+    amount: "$5,000–$10,000", amountValue: 10000,
+    deadline: "Varies", deadlineNote: "Annual — typically May/June",
+    url: "https://www.hacu.net/hacu/Scholarships.asp",
+    category: "Hispanic/Latino", eligibleNow: true, yearNote: "Full-time undergrad/grad",
+    gpa: "Strong academics", citizenshipNote: "Not explicitly citizenship-restricted",
+    fitReasons: ["STEM category fits Computer Engineering", "Howard is a HACU member"],
+    cautions: ["Confirm cycle dates each year"],
+    recurring: true,
+    description: "HACU STEM award via Kia for students at member institutions.",
+  },
+  {
+    id: "cyber-latinx",
+    name: "Cybersecurity & the Latinx Community Scholarship",
+    sponsor: "Bold.org (Castellanos Foundation)",
+    amount: "$1,000", amountValue: 1000,
+    deadline: "2026-11-25", deadlineNote: "Annual — typically November",
+    url: "https://bold.org/scholarships/cybersecurity-and-the-latinx-community-scholarship/",
+    category: "Cybersecurity", eligibleNow: true, yearNote: "Undergraduates",
+    gpa: "Not specified", citizenshipNote: "Not citizenship-restricted",
+    fitReasons: ["Latino + cybersecurity = exact match", "He's earning CompTIA A+/Network+", "Simple essay, low competition pool"],
+    cautions: ["Smaller award; favors low-income background (he qualifies)"],
+    recurring: true,
+    description: "Niche award for Latino students pursuing cybersecurity — directly on his certification path.",
+  },
+  {
+    id: "hsf",
+    name: "Hispanic Scholarship Fund (HSF) General Scholarship",
+    sponsor: "Hispanic Scholarship Fund",
+    amount: "$500–$5,000", amountValue: 5000,
+    deadline: "2027-02-15", deadlineNote: "Annual — typically Jan–Feb",
+    url: "https://www.hsf.net/scholarship",
+    category: "Hispanic/Latino", eligibleNow: true, yearNote: "Undergrad & grad",
+    gpa: "2.5+", citizenshipNote: "Requires U.S. citizen, permanent resident, or DACA",
+    fitReasons: ["Large network + mentorship/career services", "Hispanic heritage of any race — he qualifies"],
+    cautions: ["⚠ Requires U.S. citizenship / PR / DACA — confirm his status before investing time", "Requires FAFSA"],
+    recurring: true,
+    description: "The biggest Latino scholarship network; great if his citizenship/residency status meets the requirement.",
+  },
+  // ---------------- TECH / MERIT ----------------
+  {
+    id: "gen-google",
+    name: "Generation Google Scholarship",
+    sponsor: "Google",
+    amount: "$10,000", amountValue: 10000,
+    deadline: "2027-02-28", deadlineNote: "Annual — typically opens winter, due Feb/Mar",
+    url: "https://www.google.com/about/careers/applications/buildyourfuture/scholarships/generation-google-scholarship",
+    category: "Tech/Merit", eligibleNow: true, yearNote: "Undergrad & grad",
+    gpa: "Merit-based", citizenshipNote: "No strict citizenship requirement",
+    fitReasons: ["Computer Engineering, underrepresented (Black AND Latino)", "Rewards leadership — NSBE VP, founder of CollegeSwipe", "No citizenship barrier"],
+    cautions: ["Competitive; essays on overcoming barriers matter"],
+    recurring: true,
+    description: "Google's flagship scholarship for underrepresented students in computing — a centerpiece application for him.",
+  },
+  {
+    id: "ieee-merwin",
+    name: "IEEE Computer Society — Richard E. Merwin Scholarship",
+    sponsor: "IEEE Computer Society",
+    amount: "Up to $1,000", amountValue: 1000,
+    deadline: "2026-09-30", deadlineNote: "Twice yearly — Apr 30 & Sep 30",
+    url: "https://www.computer.org/volunteering/awards/scholarships/merwin",
+    category: "Tech/Merit", eligibleNow: true, yearNote: "Upper-level undergrad",
+    gpa: "2.5+", citizenshipNote: "Any",
+    fitReasons: ["He's an IEEE Technical Mentor at Howard — recognizes student-branch volunteers", "Two deadlines a year = two shots"],
+    cautions: ["Requires IEEE Computer Society membership (3+ months before deadline)"],
+    recurring: true,
+    description: "Rewards active IEEE student-branch volunteers — his mentor role is exactly what they fund.",
+  },
+  {
+    id: "ieee-career-catalyst",
+    name: "IEEE Computer Society — Career Catalyst Scholarship",
+    sponsor: "IEEE Computer Society",
+    amount: "$2,500 + conference travel", amountValue: 2500,
+    deadline: "Varies", deadlineNote: "Rolling cohorts through the year",
+    url: "https://www.computer.org/volunteering/awards/scholarships/career-catalyst",
+    category: "Tech/Merit", eligibleNow: true, yearNote: "2nd-year undergrad and up",
+    gpa: "Merit", citizenshipNote: "Any",
+    fitReasons: ["Sophomore-eligible (2nd year+)", "Adds mentorship + conference exposure he values"],
+    cautions: [],
+    recurring: true,
+    description: "Tuition + mentorship + conference attendance for promising computing students.",
+  },
+  {
+    id: "ieee-systems",
+    name: "IEEE Systems Council Undergraduate Scholarship",
+    sponsor: "IEEE Systems Council",
+    amount: "$5,000", amountValue: 5000,
+    deadline: "Varies", deadlineNote: "Annual — typically spring",
+    url: "https://ieeesystemscouncil.org/",
+    category: "Tech/Merit", eligibleNow: true, yearNote: "Undergrad (first degree)",
+    gpa: "2.8+", citizenshipNote: "Any",
+    fitReasons: ["Open to any engineering discipline", "IEEE student membership he can get easily"],
+    cautions: ["Requires IEEE student membership"],
+    recurring: true,
+    description: "Merit award for engineering undergrads who are IEEE student members.",
+  },
+  {
+    id: "dell-intern",
+    name: "Dell Intern Scholars Program",
+    sponsor: "Dell Technologies",
+    amount: "$5,000 + laptop", amountValue: 5000,
+    deadline: "Varies", deadlineNote: "Recurring seasonal recruitment",
+    url: "https://jobs.dell.com/early-career",
+    category: "Tech/Merit", eligibleNow: true, yearNote: "Sophomore-targeted",
+    gpa: "Not specified", citizenshipNote: "Not specified",
+    fitReasons: ["Explicitly for sophomore Black/Latino tech students — he's both", "Pairs money with a multi-summer internship track"],
+    cautions: ["Tied to internship availability/recruiting windows"],
+    recurring: true,
+    description: "Sophomore-focused program combining a scholarship, a laptop, and a multi-year internship pipeline.",
+  },
+  {
+    id: "cadence-firstgen",
+    name: "Cadence First-Generation Student Scholarship",
+    sponsor: "Cadence Design Systems",
+    amount: "$5,000", amountValue: 5000,
+    deadline: "2027-02-27", deadlineNote: "Annual — cycle typically Oct–Feb",
+    url: "https://www.cadence.com/en_US/home/company/cadence-academic-network/first-generation-student-scholarship.html",
+    category: "Tech/Merit", eligibleNow: true, yearNote: "Undergrad–PhD",
+    gpa: "Good standing", citizenshipNote: "U.S. / Canada",
+    fitReasons: ["Computer/Electrical Engineering eligible"],
+    cautions: ["⚠ Only if he is a first-generation college student — his essays mention a family of engineers, so likely NOT eligible; verify before applying"],
+    recurring: true,
+    description: "First-gen award in chip/EDA-adjacent engineering — include only if he qualifies as first-generation.",
+  },
+  // ---------------- CYBERSECURITY ----------------
+  {
+    id: "knowbe4",
+    name: "KnowBe4 Scholarship for Black Americans in Cybersecurity",
+    sponsor: "KnowBe4 + Center for Cyber Safety & Education",
+    amount: "$10,000 + up to $3,000 housing", amountValue: 13000,
+    deadline: "2027-01-31", deadlineNote: "Annual — typically late January",
+    url: "https://www.iamcybersafe.org/s/undergraduate-scholarships",
+    category: "Cybersecurity", eligibleNow: true, yearNote: "Undergrad & grad",
+    gpa: "3.2+", citizenshipNote: "Not specified",
+    fitReasons: ["Black + cybersecurity focus (CompTIA A+/Network+ underway)", "Large award incl. housing"],
+    cautions: ["Needs 3.2+ GPA", "Confirm program is running for the current cycle"],
+    recurring: true,
+    description: "Sizable award for Black students in cybersecurity — aligns with his certification path.",
+  },
+  {
+    id: "cybercorps-sfs",
+    name: "CyberCorps: Scholarship for Service (SFS)",
+    sponsor: "National Science Foundation / CISA",
+    amount: "Full tuition + ~$27,000/yr stipend", amountValue: 27000,
+    deadline: "Varies", deadlineNote: "Apply via a participating SFS school",
+    url: "https://www.sfs.opm.gov/",
+    category: "Cybersecurity", eligibleNow: true, yearNote: "Within 3 yrs of graduation",
+    gpa: "Competitive", citizenshipNote: "U.S. citizen or lawful permanent resident",
+    fitReasons: ["Largest dollar value here — full ride + stipend", "Cybersecurity track matches his certs/interests"],
+    cautions: ["⚠ Requires U.S. citizenship/PR + a post-grad federal service commitment", "Howard must be an SFS-participating school — verify"],
+    recurring: true,
+    description: "Pays full tuition + a generous stipend in exchange for federal cybersecurity service after graduation.",
+  },
+  // ---------------- FUTURE / NOMINATION / SPECIAL ----------------
+  {
+    id: "goldwater",
+    name: "Barry Goldwater Scholarship",
+    sponsor: "Barry Goldwater Foundation",
+    amount: "Up to $7,500/yr", amountValue: 7500,
+    deadline: "2026-10-23", deadlineNote: "Howard's internal nomination deadline comes EARLIER (early fall)",
+    url: "https://goldwaterscholarship.gov/",
+    category: "Tech/Merit", eligibleNow: false, yearNote: "Sophomore/Junior — institution-nominated",
+    gpa: "Top of class", citizenshipNote: "U.S. citizen",
+    fitReasons: ["Built for sophomores/juniors aiming at a research PhD — exactly his goal", "Prestige opens doors to grad school"],
+    cautions: ["⚠ Cannot self-apply — Howard nominates. Talk to his department's Goldwater rep THIS fall", "U.S. citizens only", "Needs a research project/mentor"],
+    recurring: true,
+    description: "The premier undergrad STEM-research scholarship; he should start the Howard nomination process early as a sophomore.",
+  },
+  {
+    id: "astronaut",
+    name: "Astronaut Scholarship",
+    sponsor: "Astronaut Scholarship Foundation",
+    amount: "Up to $15,000", amountValue: 15000,
+    deadline: "Varies", deadlineNote: "Faculty-nominated; fall cycle",
+    url: "https://www.astronautscholarship.org/",
+    category: "Tech/Merit", eligibleNow: false, yearNote: "Sophomore/Junior — nomination-based",
+    gpa: "Top of class", citizenshipNote: "U.S. citizen",
+    fitReasons: ["Rewards research intent — fits his PhD plans"],
+    cautions: ["Only at ASF-partner universities — confirm Howard participates", "Requires faculty nomination"],
+    recurring: true,
+    description: "Prestigious STEM-research award; only if Howard is an ASF partner and a professor nominates him.",
+  },
+  {
+    id: "tmcf-ai",
+    name: "TMCF Cybersecurity & AI Scholarship",
+    sponsor: "Thurgood Marshall College Fund",
+    amount: "Up to $7,500", amountValue: 7500,
+    deadline: "Varies", deadlineNote: "Revisit as a junior — annual cycle",
+    url: "https://www.tmcf.org/our-scholarships/",
+    category: "Cybersecurity", eligibleNow: false, yearNote: "Junior+ (DC-area HBCU)",
+    gpa: "3.0+", citizenshipNote: "U.S. citizen or permanent resident",
+    fitReasons: ["DC-area HBCU (Howard) + AI/cybersecurity — tailor-made for him next year", "Financial need considered"],
+    cautions: ["Junior standing required — set a reminder for next year"],
+    recurring: true,
+    description: "AI/cybersecurity award for DC-area HBCU students — bookmark for his junior year.",
+  },
+  {
+    id: "thiel",
+    name: "Thiel Fellowship",
+    sponsor: "Thiel Foundation",
+    amount: "$200,000 over 2 years", amountValue: 200000,
+    deadline: "Varies", deadlineNote: "Rolling annual selection",
+    url: "https://thielfellowship.org/",
+    category: "Entrepreneurship", eligibleNow: false, yearNote: "Age ≤ 22 — founders",
+    gpa: "N/A", citizenshipNote: "Open",
+    fitReasons: ["Founder of CollegeSwipe (live on the App Store) + two LLCs — genuine builder profile", "Largest award here"],
+    cautions: ["⚠ Requires leaving/pausing school to build full-time — a major life decision, not a typical scholarship", "Extremely selective"],
+    recurring: true,
+    description: "A grant to build a startup instead of finishing school — listed because his founder track record fits, but it's a big trade-off.",
+  },
+];
+
+/* ------------------------------------------------------------------ *
+ *  Seed essays — Diego's real text, pulled from his two essay PDFs so
+ *  he can copy-paste while applying. He can edit/add/delete freely.
+ * ------------------------------------------------------------------ */
+const SEED_ESSAYS = [
+  {
+    id: "seed-phd-goals",
+    title: "Educational goals after undergrad (PhD plans)",
+    tags: "grad school, PhD, career",
+    body: `After the completion of my undergraduate degree, I plan to continue my education in graduate school by attaining a Ph.D. degree to become more of an expert and familiarize myself with the content of computer engineering. Outside of formal education, I plan to get involved with internships and research opportunities in order to develop hands-on work experience in my field of study. This degree will support my career aspirations in three ways: (1) it will provide a strong expertise to be the best qualified in my field, (2) it will expose me to research and career opportunities I would not otherwise have access to, (3) it will allow me to better contribute to the advancement of underrepresented groups in STEM. Some current emerging technologies such as quantum computing, automation, machine learning, and artificial intelligence have recently grabbed my attention; I want to continue to be a greater contributor to these kinds of innovations through research, publications, ideas, and creations.`,
+  },
+  {
+    id: "seed-challenge",
+    title: "Personal challenge / problem-solving (BisonBytes hackathon)",
+    tags: "challenge, teamwork, hackathon",
+    body: `This past weekend, I participated in the BisonBytes hackathon, which was my first hackathon. I teamed up with fellow engineers to develop a Fintech marketplace that connects people or businesses in a smarter, faster, or more efficient way. We had about 24 hours to complete this task. First, we started by brainstorming ideas and choosing the right one based on creativity, usefulness, originality, and how long we predicted it would take to develop. After debating and ruling out options, we assigned tasks to each teammate based on our strong suits. Our project was a website that could connect interns with other interns who would potentially room together near where they will work, matching on preferences such as age, hobbies, company, and major. As a team we split into frontend and backend developers to complete the site more efficiently. After a long day and night of trial and error, and asking for advice from mentors and neighboring teams, we came up with our final product for a presentation the next day. Although we did not win, it was a very valuable learning experience and I am excited to be involved in more.`,
+  },
+  {
+    id: "seed-identity",
+    title: "Identity / heritage (Black + Hispanic)",
+    tags: "identity, diversity, heritage",
+    body: `My background and life experiences have shaped my perspective because of my connections to a wide range of academic, ethnic, and racial backgrounds. I have African-American and Latino roots; my mother was born and raised in Venezuela, my grandparents are from Spain, and my father is African-American, born in New Jersey and raised in Howard County. I recently visited my grandparents in Spain and had the opportunity to experience the food, culture, and language of the country. Growing up in Howard County, one of the most diverse counties in the country, allowed me to create relationships with people from various backgrounds, ideals, and perspectives. My family consists of several engineers — including my father, grandfather, and multiple cousins, aunts, and uncles — attending schools such as College Park, Columbia, Johns Hopkins, Lincoln, and Howard. Being exposed to this environment gave me the mind of a problem solver and brought me into the field of engineering.`,
+  },
+  {
+    id: "seed-underrep",
+    title: "Why advancement of underrepresented groups matters",
+    tags: "diversity, equity, STEM",
+    body: `The advancement of underrepresented groups in STEM fields is important for three reasons: (1) it contributes to social equality for underrepresented groups, (2) it provides broader perspectives and improved results to all groups, (3) it can improve social harmony by dismissing myths about underrepresented groups. Advancing underrepresented groups allows people who have been excluded or discouraged from STEM to actively participate, contribute, build self-esteem, and improve their own and their families' lives intellectually and economically. A wider range of perspectives contributes to improved problem solving and new ideas; by contrast, a narrow set of people is less effective and produces inferior results. STEM is a very influential set of fields, and decisions made by STEM professionals affect all of society. For these reasons, advancing underrepresented groups in STEM is vitally important to society and to me.`,
+  },
+  {
+    id: "seed-uplift",
+    title: "Uplifting the Black community (CollegeSwipe)",
+    tags: "community, leadership, impact",
+    body: `As an African American student attending Howard University, I have a clear understanding of how opportunity is not equally distributed amongst students. I have been in classrooms where brilliance was abundant but guidance was absent. That responsibility prompted me to build CollegeSwipe, an app now available on the App Store that allows students to discover colleges and scholarships through an intuitive interface. I created CollegeSwipe with students like the ones I grew up with in mind — students who possess the raw capabilities to succeed but whose path has historically been complicated by existing systems. Through my roles as technical mentor and E-Board member in the National Society of Black Engineers, I empower and support other students both academically and professionally. In the future, I aim to earn a Ph.D. in computer engineering, research advancements in artificial intelligence, and ensure the development of a new era of technologies that not only eliminate barriers to access but actively provide increased opportunity for all.`,
+  },
+  {
+    id: "seed-leadership",
+    title: "Leadership / drive / integrity / citizenship",
+    tags: "leadership, NSBE, character",
+    body: `I am currently Vice President of my National Society of Black Engineers (NSBE) chapter, responsible for leading meetings and activities and filling in for the President in her absence. When preparing for a regional conference competition (~10,000 students from 8 states), I made a positive impact by helping teams build teamwork, mentoring students, and coaching on professionalism. As a senior member of the rocketry team, I assisted younger members in coordinating launches. My drive shows in a consistent 'A' average and above-grade-level coursework including AP and dual enrollment; I won first place in my community college math competition, placing 3rd in the entire mid-Atlantic as a senior in high school. I aim to be a good citizen by volunteering — making food packages for people without access to food, working at an animal sanctuary, and supporting families of cancer victims. This year I was inducted into the National Honor Society partly because of my citizenship.`,
+  },
+  {
+    id: "seed-need",
+    title: "Why I need this scholarship / financial need",
+    tags: "financial need",
+    body: `As a computer engineering major with a strong academic track record, I am seeking financial support to continue my undergraduate career while avoiding student loans. I received scholarships for my first year, but those awards were one-time and do not carry through my remaining years. Unfortunately, my parents are not able to cover my full outstanding balance, and I have done everything I can — including paying what I can out of pocket — to avoid tuition debt for myself and not impact my family. This financial strain weighs heavily on me, as I also have younger siblings who will begin their own college education shortly. I want to minimize the impact my education has on my household so my siblings do not have financial debt to worry about. This scholarship would reduce that burden and allow me to balance everything academically while focusing on engineering projects and student organization work.`,
+  },
+  {
+    id: "seed-quals",
+    title: "Honors, internships & ventures (résumé bullets)",
+    tags: "résumé, experience, IT",
+    body: `Howard University IEEE chapter — Technical Mentor Intern (support projects, guide students). Affiliate of the Karsh STEM Scholars Program. Co-founded EzClickAI, applying AI and NLP to build chatbot solutions for businesses. Founded Civetta LLC, building and optimizing an e-commerce website using coding, UX design, and data-driven marketing. Participated in UNCF's Early Talent Opportunity Program. CompTIA A+ and Network+ certifications in progress. DOD Training Center — Infrastructure Support Intern (3 years): set up classroom computers, PC repairs/builds, AV support. Advancement Strategy internship: managed a database of 300+ leads, network/router setup, security configuration, Office 365 support. NSBE Vice President; TryMathalon (TMAL) math team — 1st place in Region 2 conferences.`,
+  },
+];
+
+/* ----------------------------- helpers ----------------------------- */
+const STORE_KEY = "diego-dashboard-v1";
+
+function loadStore() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }
+  catch (e) { return {}; }
+}
+function useStore() {
+  const [store, setStore] = useState(loadStore);
+  useEffect(() => {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {}
+  }, [store]);
+  return [store, setStore];
+}
+
+const STATUS_OPTIONS = [
+  { key: "none", label: "Not started", color: "#9ca3af" },
+  { key: "interested", label: "Interested", color: "#2563eb" },
+  { key: "in_progress", label: "In progress", color: "#d97706" },
+  { key: "submitted", label: "Submitted", color: "#7c3aed" },
+  { key: "awarded", label: "Awarded 🎉", color: "#059669" },
+  { key: "rejected", label: "Not selected", color: "#6b7280" },
+];
+const statusMeta = (k) => STATUS_OPTIONS.find((s) => s.key === k) || STATUS_OPTIONS[0];
+
+function hasConcreteDate(d) { return /^\d{4}-\d{2}-\d{2}$/.test(d); }
+function fmtDate(d) {
+  if (!hasConcreteDate(d)) return d;
+  const dt = new Date(d + "T00:00:00");
+  return dt.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+function daysUntil(d) {
+  if (!hasConcreteDate(d)) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dt = new Date(d + "T00:00:00");
+  return Math.round((dt - today) / 86400000);
+}
+
+/* ----------------------------- UI bits ----------------------------- */
+function CategoryChip({ cat, small }) {
+  const c = CATEGORIES[cat];
+  if (!c) return null;
+  return (
+    <span className="inline-flex items-center rounded-full font-semibold text-white"
+      style={{ background: c.color, fontSize: small ? 10 : 11, padding: small ? "2px 8px" : "3px 10px" }}>
+      {c.label}
+    </span>
+  );
+}
+
+function DeadlineBadge({ deadline }) {
+  const d = daysUntil(deadline);
+  if (d === null) {
+    return <span className="text-xs font-medium text-gray-500">{deadline}</span>;
+  }
+  let color = "#059669", text = `${d} days left`;
+  if (d < 0) { color = "#9ca3af"; text = "Cycle passed — recurs"; }
+  else if (d <= 14) { color = "#e51937"; text = `${d} days left`; }
+  else if (d <= 45) { color = "#d97706"; }
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-bold" style={{ color }}>
+      <span style={{ width: 7, height: 7, borderRadius: 99, background: color, display: "inline-block" }}></span>
+      {text}
+    </span>
+  );
+}
+
+function StatusSelect({ value, onChange }) {
+  const m = statusMeta(value);
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)}
+      className="rounded-lg border text-xs font-semibold px-2 py-1.5 outline-none cursor-pointer"
+      style={{ borderColor: m.color, color: m.color }}>
+      {STATUS_OPTIONS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+    </select>
+  );
+}
+
+function ScholarshipCard({ s, state, onStatus, onNotes }) {
+  const status = (state && state.status) || "none";
+  const notes = (state && state.notes) || "";
+  const [showNotes, setShowNotes] = useState(false);
+  return (
+    <div className="hw-card p-5 flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <CategoryChip cat={s.category} />
+            {s.eligibleNow
+              ? <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5 border border-emerald-200">ELIGIBLE NOW</span>
+              : <span className="text-[10px] font-bold text-amber-700 bg-amber-50 rounded-full px-2 py-0.5 border border-amber-200">FUTURE / SPECIAL</span>}
+          </div>
+          <h3 className="font-bold text-howard-blue leading-tight" style={{ color: "#003a63" }}>{s.name}</h3>
+          <p className="text-xs text-gray-500">{s.sponsor}</p>
+        </div>
+        <div className="text-right shrink-0">
+          <div className="font-extrabold text-lg" style={{ color: "#e51937" }}>{s.amount}</div>
+        </div>
+      </div>
+
+      <p className="text-sm text-gray-600">{s.description}</p>
+
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+        <span><strong className="text-gray-700">Year:</strong> {s.yearNote}</span>
+        <span><strong className="text-gray-700">GPA:</strong> {s.gpa}</span>
+        <span><strong className="text-gray-700">Deadline:</strong> {fmtDate(s.deadline)}</span>
+      </div>
+      {s.deadlineNote && <p className="text-[11px] text-gray-400 -mt-1">{s.deadlineNote}</p>}
+
+      {s.fitReasons && s.fitReasons.length > 0 && (
+        <div>
+          <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide mb-1">Why it fits Diego</p>
+          <ul className="text-xs text-gray-600 space-y-0.5">
+            {s.fitReasons.map((r, i) => <li key={i} className="flex gap-1.5"><span className="text-emerald-500">✓</span>{r}</li>)}
+          </ul>
+        </div>
+      )}
+
+      {s.cautions && s.cautions.length > 0 && (
+        <div>
+          <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wide mb-1">Watch out for</p>
+          <ul className="text-xs text-gray-600 space-y-0.5">
+            {s.cautions.map((r, i) => <li key={i} className="flex gap-1.5"><span className="text-amber-500">!</span>{r}</li>)}
+          </ul>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
+        <div className="flex items-center gap-2">
+          <DeadlineBadge deadline={s.deadline} />
+        </div>
+        <div className="flex items-center gap-2">
+          <StatusSelect value={status} onChange={(v) => onStatus(s.id, v)} />
+          <a href={s.url} target="_blank" rel="noopener noreferrer"
+            className="text-xs font-bold text-white rounded-lg px-3 py-1.5"
+            style={{ background: "#003a63" }}>Apply →</a>
+        </div>
+      </div>
+
+      <button onClick={() => setShowNotes((v) => !v)} className="text-[11px] text-gray-400 text-left hover:text-gray-600">
+        {showNotes ? "▾ Hide notes" : (notes ? "▸ Notes (saved)" : "▸ Add a note")}
+      </button>
+      {showNotes && (
+        <textarea value={notes} onChange={(e) => onNotes(s.id, e.target.value)}
+          placeholder="Track requirements, recommenders, login info, what's left to do…"
+          className="w-full text-sm rounded-lg border border-gray-200 p-2 outline-none focus:border-howard-blue"
+          rows={3} />
+      )}
+    </div>
+  );
+}
+
+/* ----------------------------- Tabs ----------------------------- */
+function ScholarshipsTab({ store, setStatus, setNotes }) {
+  const [cat, setCat] = useState("all");
+  const [eligibleOnly, setEligibleOnly] = useState(false);
+  const [hideCitizenship, setHideCitizenship] = useState(false);
+  const [sort, setSort] = useState("deadline");
+  const [q, setQ] = useState("");
+
+  const setStatusFn = (id, v) => setStatus(id, v);
+
+  const filtered = useMemo(() => {
+    let list = SCHOLARSHIPS.slice();
+    if (cat !== "all") list = list.filter((s) => s.category === cat);
+    if (eligibleOnly) list = list.filter((s) => s.eligibleNow);
+    if (hideCitizenship) list = list.filter((s) => !/citizen|permanent resident|U\.S\. citizen/i.test(s.citizenshipNote || "") || /No |Not |Any|Open/i.test(s.citizenshipNote || ""));
+    if (q.trim()) {
+      const t = q.toLowerCase();
+      list = list.filter((s) => (s.name + s.sponsor + s.description + (s.fitReasons || []).join(" ")).toLowerCase().includes(t));
+    }
+    list.sort((a, b) => {
+      if (sort === "amount") return b.amountValue - a.amountValue;
+      // deadline: concrete dates first (soonest), then rolling/varies
+      const da = daysUntil(a.deadline), db = daysUntil(b.deadline);
+      const va = da === null ? Infinity : (da < 0 ? da + 100000 : da);
+      const vb = db === null ? Infinity : (db < 0 ? db + 100000 : db);
+      return va - vb;
+    });
+    return list;
+  }, [cat, eligibleOnly, hideCitizenship, sort, q]);
+
+  const chipBtn = (key, label) => (
+    <button onClick={() => setCat(key)}
+      className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
+      style={cat === key ? { background: "#003a63", color: "#fff" } : { background: "#fff", color: "#374151", border: "1px solid #e5e7eb" }}>
+      {label}
+    </button>
+  );
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        {chipBtn("all", "All")}
+        {Object.keys(CATEGORIES).map((k) => chipBtn(k, CATEGORIES[k].label))}
+      </div>
+      <div className="flex flex-wrap items-center gap-3 mb-5">
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search scholarships…"
+          className="flex-1 min-w-[180px] text-sm rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-howard-blue" />
+        <select value={sort} onChange={(e) => setSort(e.target.value)}
+          className="text-sm rounded-lg border border-gray-200 px-3 py-2 outline-none bg-white">
+          <option value="deadline">Sort: Deadline (soonest)</option>
+          <option value="amount">Sort: Amount (highest)</option>
+        </select>
+        <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 cursor-pointer">
+          <input type="checkbox" checked={eligibleOnly} onChange={(e) => setEligibleOnly(e.target.checked)} /> Eligible now only
+        </label>
+        <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 cursor-pointer">
+          <input type="checkbox" checked={hideCitizenship} onChange={(e) => setHideCitizenship(e.target.checked)} /> Hide citizenship-required
+        </label>
+      </div>
+      <p className="text-xs text-gray-400 mb-3">{filtered.length} scholarship{filtered.length !== 1 ? "s" : ""} shown</p>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {filtered.map((s) => (
+          <ScholarshipCard key={s.id} s={s}
+            state={store.apps && store.apps[s.id]}
+            onStatus={setStatus} onNotes={setNotes} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DeadlinesTab({ store, setStatus }) {
+  const concrete = SCHOLARSHIPS.filter((s) => hasConcreteDate(s.deadline))
+    .slice().sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+  const rolling = SCHOLARSHIPS.filter((s) => !hasConcreteDate(s.deadline));
+
+  // group concrete by Month Year
+  const groups = {};
+  concrete.forEach((s) => {
+    const dt = new Date(s.deadline + "T00:00:00");
+    const key = dt.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    (groups[key] = groups[key] || []).push(s);
+  });
+
+  return (
+    <div className="max-w-3xl">
+      <p className="text-sm text-gray-500 mb-5">Ordered by the next realistic deadline. Most awards recur every year — treat passed dates as "coming back around." Always confirm exact dates on the official site.</p>
+      {Object.keys(groups).map((month) => (
+        <div key={month} className="mb-6">
+          <h3 className="text-sm font-extrabold uppercase tracking-wide mb-2" style={{ color: "#003a63" }}>{month}</h3>
+          <div className="space-y-2">
+            {groups[month].map((s) => {
+              const st = (store.apps && store.apps[s.id] && store.apps[s.id].status) || "none";
+              return (
+                <div key={s.id} className="hw-card p-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm truncate" style={{ color: "#003a63" }}>{s.name}</span>
+                      <CategoryChip cat={s.category} small />
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                      <span>{fmtDate(s.deadline)}</span>
+                      <DeadlineBadge deadline={s.deadline} />
+                      <span className="font-semibold" style={{ color: statusMeta(st).color }}>{statusMeta(st).label}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-bold text-sm" style={{ color: "#e51937" }}>{s.amount}</span>
+                    <a href={s.url} target="_blank" rel="noopener noreferrer"
+                      className="text-xs font-bold text-white rounded-lg px-2.5 py-1.5" style={{ background: "#003a63" }}>Apply →</a>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+      <div className="mb-2">
+        <h3 className="text-sm font-extrabold uppercase tracking-wide mb-2 text-gray-400">Rolling / varies — check anytime</h3>
+        <div className="space-y-2">
+          {rolling.map((s) => (
+            <div key={s.id} className="hw-card p-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm truncate" style={{ color: "#003a63" }}>{s.name}</span>
+                  <CategoryChip cat={s.category} small />
+                </div>
+                <span className="text-xs text-gray-500">{s.deadline} · {s.deadlineNote}</span>
+              </div>
+              <a href={s.url} target="_blank" rel="noopener noreferrer"
+                className="text-xs font-bold text-white rounded-lg px-2.5 py-1.5 shrink-0" style={{ background: "#003a63" }}>Apply →</a>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EssaysTab({ store, setStore }) {
+  const essays = store.essays || SEED_ESSAYS;
+  const [copiedId, setCopiedId] = useState(null);
+
+  const update = (id, field, value) => {
+    setStore((prev) => {
+      const list = (prev.essays || SEED_ESSAYS).map((e) => e.id === id ? { ...e, [field]: value } : e);
+      return { ...prev, essays: list };
+    });
+  };
+  const add = () => {
+    setStore((prev) => {
+      const list = (prev.essays || SEED_ESSAYS).slice();
+      list.unshift({ id: "essay-" + Date.now(), title: "New essay", tags: "", body: "" });
+      return { ...prev, essays: list };
+    });
+  };
+  const remove = (id) => {
+    if (!confirm("Delete this essay?")) return;
+    setStore((prev) => ({ ...prev, essays: (prev.essays || SEED_ESSAYS).filter((e) => e.id !== id) }));
+  };
+  const resetSeed = () => {
+    if (!confirm("Restore the original starter essays? This replaces the current list.")) return;
+    setStore((prev) => ({ ...prev, essays: SEED_ESSAYS }));
+  };
+  const copy = (e) => {
+    navigator.clipboard.writeText(e.body).then(() => {
+      setCopiedId(e.id); setTimeout(() => setCopiedId(null), 1500);
+    }).catch(() => {});
+  };
+
+  return (
+    <div className="max-w-3xl">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm text-gray-500">Diego's reusable essay library — pre-loaded from his own essays. Copy a block, then tailor it to each prompt.</p>
+      </div>
+      <div className="flex gap-2 mb-5">
+        <button onClick={add} className="text-xs font-bold text-white rounded-lg px-3 py-2" style={{ background: "#e51937" }}>+ New essay</button>
+        <button onClick={resetSeed} className="text-xs font-semibold text-gray-600 rounded-lg px-3 py-2 border border-gray-200">Restore starters</button>
+      </div>
+      <div className="space-y-4">
+        {essays.map((e) => (
+          <details key={e.id} className="hw-card p-4" open={false}>
+            <summary className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <span className="font-bold" style={{ color: "#003a63" }}>{e.title || "Untitled"}</span>
+                {e.tags && <span className="ml-2 text-[11px] text-gray-400">{e.tags}</span>}
+              </div>
+              <span className="text-xs text-gray-400 shrink-0">{(e.body || "").split(/\s+/).filter(Boolean).length} words</span>
+            </summary>
+            <div className="mt-3 space-y-2">
+              <input value={e.title} onChange={(ev) => update(e.id, "title", ev.target.value)}
+                className="w-full text-sm font-semibold rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-howard-blue" placeholder="Essay title / prompt" />
+              <input value={e.tags} onChange={(ev) => update(e.id, "tags", ev.target.value)}
+                className="w-full text-xs rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-howard-blue" placeholder="Tags (e.g. leadership, financial need)" />
+              <textarea value={e.body} onChange={(ev) => update(e.id, "body", ev.target.value)}
+                className="w-full text-sm rounded-lg border border-gray-200 p-3 outline-none focus:border-howard-blue hw-scrollbar" rows={7} placeholder="Essay text…" />
+              <div className="flex items-center gap-2">
+                <button onClick={() => copy(e)} className="text-xs font-bold text-white rounded-lg px-3 py-1.5" style={{ background: "#003a63" }}>
+                  {copiedId === e.id ? "Copied ✓" : "Copy text"}
+                </button>
+                <button onClick={() => remove(e.id)} className="text-xs font-semibold text-gray-500 rounded-lg px-3 py-1.5 border border-gray-200">Delete</button>
+              </div>
+            </div>
+          </details>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ----------------------------- App shell ----------------------------- */
+function App() {
+  const [store, setStore] = useStore();
+  const [tab, setTab] = useState("scholarships");
+
+  const setStatus = (id, v) => setStore((prev) => {
+    const apps = { ...(prev.apps || {}) };
+    apps[id] = { ...(apps[id] || {}), status: v };
+    return { ...prev, apps };
+  });
+  const setNotes = (id, v) => setStore((prev) => {
+    const apps = { ...(prev.apps || {}) };
+    apps[id] = { ...(apps[id] || {}), notes: v };
+    return { ...prev, apps };
+  });
+
+  // stats
+  const eligibleCount = SCHOLARSHIPS.filter((s) => s.eligibleNow).length;
+  const totalPotential = SCHOLARSHIPS.filter((s) => s.eligibleNow).reduce((a, s) => a + s.amountValue, 0);
+  const dueSoon = SCHOLARSHIPS.filter((s) => { const d = daysUntil(s.deadline); return d !== null && d >= 0 && d <= 45; }).length;
+  const apps = store.apps || {};
+  const trackedCount = Object.values(apps).filter((a) => a.status && a.status !== "none").length;
+  const submittedCount = Object.values(apps).filter((a) => ["submitted", "awarded"].includes(a.status)).length;
+
+  const TabBtn = ({ id, label }) => (
+    <button onClick={() => setTab(id)}
+      className="px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+      style={tab === id ? { background: "#fff", color: "#003a63" } : { background: "transparent", color: "rgba(255,255,255,0.85)" }}>
+      {label}
+    </button>
+  );
+
+  const Stat = ({ value, label, accent }) => (
+    <div className="bg-white/10 rounded-xl px-4 py-3 backdrop-blur">
+      <div className="text-2xl font-extrabold" style={{ color: accent || "#fff" }}>{value}</div>
+      <div className="text-[11px] uppercase tracking-wide text-white/70">{label}</div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen">
+      <header className="hw-banner">
+        <div className="max-w-6xl mx-auto px-5 pt-7 pb-6">
+          <div className="flex items-center gap-2 text-white/70 text-xs font-semibold uppercase tracking-widest mb-1">
+            <span>🦬 Howard University</span><span>·</span><span>Scholarship Dashboard</span>
+          </div>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-white">Diego's Scholarship Dashboard</h1>
+          <div className="flex flex-wrap gap-2 mt-2 mb-5">
+            {["Sophomore", "Computer Engineering", "Black + Hispanic/Latino", "NSBE VP", "Future PhD"].map((t) => (
+              <span key={t} className="text-[11px] font-semibold text-white rounded-full px-2.5 py-1" style={{ background: "rgba(229,25,55,0.85)" }}>{t}</span>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <Stat value={eligibleCount} label="Eligible now" />
+            <Stat value={"$" + totalPotential.toLocaleString()} label="Potential (eligible)" accent="#ffd9a0" />
+            <Stat value={dueSoon} label="Due ≤ 45 days" accent="#ffb4b4" />
+            <Stat value={trackedCount} label="Tracking" />
+            <Stat value={submittedCount} label="Submitted" accent="#b9f5cf" />
+          </div>
+          <nav className="flex gap-2 mt-6 bg-white/10 p-1 rounded-xl w-fit">
+            <TabBtn id="scholarships" label="Scholarships" />
+            <TabBtn id="deadlines" label="Deadlines" />
+            <TabBtn id="essays" label="Essay Locker" />
+          </nav>
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto px-5 py-7">
+        {tab === "scholarships" && <ScholarshipsTab store={store} setStatus={setStatus} setNotes={setNotes} />}
+        {tab === "deadlines" && <DeadlinesTab store={store} setStatus={setStatus} />}
+        {tab === "essays" && <EssaysTab store={store} setStore={setStore} />}
+      </main>
+
+      <footer className="max-w-6xl mx-auto px-5 pb-10 pt-2">
+        <div className="hw-card p-4 text-xs text-gray-500 leading-relaxed">
+          <strong className="text-gray-700">⚠ Always verify before applying.</strong> Scholarship amounts, deadlines, and eligibility rules change every cycle. The dates here are the next realistic occurrence or a typical window — confirm everything on each scholarship's official page (the “Apply →” button). Your status, notes, and essays are saved only in <em>this</em> browser on <em>this</em> computer (localStorage); they won't sync to other devices. Built with ♥ for Diego.
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
